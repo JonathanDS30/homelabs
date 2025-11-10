@@ -1,0 +1,6 @@
+---
+# Handlers for the install-bash_it role
+
+- name: Reload bash
+  ansible.builtin.debug:
+    msg: "Bash configuration updated. Please run 'source ~/.bashrc' or restart your shell."

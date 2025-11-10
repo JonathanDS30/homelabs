@@ -1,0 +1,14 @@
+---
+# Default variables for the install-terraform role
+
+# HashiCorp API URL to fetch the latest version
+terraform_api_url: "https://api.releases.hashicorp.com/v1/releases/terraform/latest"
+
+# Installation directory
+terraform_install_dir: "/usr/local/bin"
+
+# System architecture (auto-detected)
+terraform_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+
+# Operating system
+terraform_os: "linux"

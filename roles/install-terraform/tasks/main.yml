@@ -1,0 +1,77 @@
+---
+# Tasks to install Terraform
+
+- name: Install required dependencies
+  ansible.builtin.apt:
+    name:
+      - unzip
+      - curl
+      - gpg
+    state: present
+    update_cache: yes
+  become: true
+
+- name: Fetch information about the latest Terraform version
+  ansible.builtin.uri:
+    url: "{{ terraform_api_url }}"
+    return_content: yes
+  register: terraform_latest_release
+
+- name: Set version and download URL
+  ansible.builtin.set_fact:
+    terraform_version: "{{ terraform_latest_release.json.version }}"
+    terraform_download_url: "{{ terraform_latest_release.json.builds | selectattr('os', 'equalto', terraform_os) | selectattr('arch', 'equalto', terraform_arch) | map(attribute='url') | first }}"
+
+- name: Check if Terraform is already installed
+  ansible.builtin.command: terraform version -json
+  register: terraform_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Set the currently installed version
+  ansible.builtin.set_fact:
+    terraform_current_version: "{{ (terraform_installed_version.stdout | from_json).terraform_version if terraform_installed_version.rc == 0 else 'none' }}"
+
+- name: Display version information
+  ansible.builtin.debug:
+    msg: "Current version: {{ terraform_current_version }} | Latest version: {{ terraform_version }}"
+
+- name: Download and install Terraform
+  when: terraform_current_version != terraform_version
+  block:
+    - name: Create temporary directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: terraform
+      register: terraform_temp_dir
+
+    - name: Download Terraform
+      ansible.builtin.get_url:
+        url: "{{ terraform_download_url }}"
+        dest: "{{ terraform_temp_dir.path }}/terraform.zip"
+        mode: '0644'
+
+    - name: Extract Terraform
+      ansible.builtin.unarchive:
+        src: "{{ terraform_temp_dir.path }}/terraform.zip"
+        dest: "{{ terraform_temp_dir.path }}"
+        remote_src: yes
+
+    - name: Install Terraform to {{ terraform_install_dir }}
+      ansible.builtin.copy:
+        src: "{{ terraform_temp_dir.path }}/terraform"
+        dest: "{{ terraform_install_dir }}/terraform"
+        mode: '0755'
+        remote_src: yes
+      become: true
+      notify: Verify Terraform installation
+
+    - name: Clean up temporary files
+      ansible.builtin.file:
+        path: "{{ terraform_temp_dir.path }}"
+        state: absent
+
+- name: Terraform is already up to date
+  ansible.builtin.debug:
+    msg: "Terraform {{ terraform_version }} is already installed"
+  when: terraform_current_version == terraform_version

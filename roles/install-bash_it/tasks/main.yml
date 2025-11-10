@@ -1,0 +1,41 @@
+---
+# Tasks to install and configure Bash-it
+
+- name: Clone Bash-it repository if not exists
+  git:
+    repo: "{{ bash_it_repo }}"
+    dest: "{{ bash_it_dir }}"
+    version: master
+    update: no
+
+- name: Install Bash-it
+  shell: "{{ bash_it_dir }}/install.sh --silent --no-modify-config"
+  args:
+    creates: "{{ bash_it_dir }}/bash_it.sh"
+  when: bash_it_dir is defined
+
+- name: Check if bash_it script exists
+  stat:
+    path: "{{ bash_it_dir }}/bash_it.sh"
+  register: bash_it_script
+
+- name: Copy custom bobby theme
+  template:
+    src: bobby.theme.bash.j2
+    dest: "{{ bash_it_dir }}/themes/bobby/bobby.theme.bash"
+    mode: '0644'
+  when: bash_it_script.stat.exists
+
+- name: Enable Bash-it theme
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    regexp: '^export BASH_IT_THEME='
+    line: "export BASH_IT_THEME='{{ bash_it_theme }}'"
+  notify: Reload bash
+
+- name: Enable SSH completion
+  shell: "bash {{ bash_it_dir }}/bash_it.sh enable completion {{ item }}"
+  args:
+    creates: "{{ bash_it_dir }}/enabled/{{ item }}.completion.bash"
+  loop: "{{ bash_it_completions }}"
+  when: bash_it_script.stat.exists

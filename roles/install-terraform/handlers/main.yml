@@ -1,0 +1,13 @@
+---
+# Handlers for the install-terraform role
+
+- name: Verify Terraform installation
+  ansible.builtin.command: terraform version
+  register: terraform_version_output
+  changed_when: false
+  listen: "Verify Terraform installation"
+
+- name: Display installed Terraform version
+  ansible.builtin.debug:
+    msg: "{{ terraform_version_output.stdout }}"
+  listen: "Verify Terraform installation"

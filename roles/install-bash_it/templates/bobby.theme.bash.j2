@@ -1,0 +1,50 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034 # Expected behavior for themes.
+
+# Custom Bobby theme for Bash-it
+# This theme displays: timestamp, ruby version, hostname, current directory, and git status
+
+# SCM (Source Control Management) theme settings
+SCM_THEME_PROMPT_DIRTY=" ${red?}✗"         # Show red X when repository has uncommitted changes
+SCM_THEME_PROMPT_CLEAN=" ${bold_green?}✓"  # Show green checkmark when repository is clean
+SCM_THEME_PROMPT_PREFIX=" ${green?}|"      # Prefix before SCM info
+SCM_THEME_PROMPT_SUFFIX="${green?}|"       # Suffix after SCM info
+
+# Git-specific theme settings
+GIT_THEME_PROMPT_DIRTY=" ${red?}✗"         # Show red X when git has uncommitted changes
+GIT_THEME_PROMPT_CLEAN=" ${bold_green?}✓"  # Show green checkmark when git is clean
+GIT_THEME_PROMPT_PREFIX=" ${green?}|"      # Prefix before git info
+GIT_THEME_PROMPT_SUFFIX="${green?}|"       # Suffix after git info
+
+# RVM (Ruby Version Manager) theme settings
+RVM_THEME_PROMPT_PREFIX="|"
+RVM_THEME_PROMPT_SUFFIX="|"
+
+# Display clock in the prompt
+function __bobby_clock() {
+    printf '%s' "$(clock_prompt)"
+
+    if [[ "${THEME_SHOW_CLOCK_CHAR:-}" == "true" ]]; then
+        printf '%s' "$(clock_char) "
+    fi
+}
+
+# Build the PS1 prompt
+function prompt_command() {
+    PS1="\n$(__bobby_clock)"                           # Clock on first line
+    PS1+="${yellow?}$(ruby_version_prompt) "           # Ruby version in yellow
+    PS1+="${purple?}\h "                               # Hostname in purple
+    PS1+="${reset_color?}in "                          # Separator
+    PS1+="${green?}\w\n"                               # Working directory in green
+    PS1+="${bold_cyan?}$(scm_prompt_char_info) "       # SCM info in cyan
+    PS1+="${green?}→${reset_color?} "                  # Arrow prompt
+}
+
+# Theme configuration variables
+: "${THEME_SHOW_CLOCK_CHAR:="false"}"                  # Show clock character (default: false)
+: "${THEME_CLOCK_CHAR_COLOR:=${red?}}"                 # Clock character color (default: red)
+: "${THEME_CLOCK_COLOR:=${bold_cyan?}}"                # Clock color (default: bold cyan)
+: "${THEME_CLOCK_FORMAT:="%Y-%m-%d %H:%M:%S"}"         # Clock format (default: YYYY-MM-DD HH:MM:SS)
+
+# Register the prompt command
+safe_append_prompt_command prompt_command

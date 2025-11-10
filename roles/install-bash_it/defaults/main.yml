@@ -1,0 +1,15 @@
+---
+# Default variables for the install-bash_it role
+
+# Git repository URL for Bash-it
+bash_it_repo: "https://github.com/Bash-it/bash-it.git"
+
+# Installation directory for Bash-it
+bash_it_dir: "{{ ansible_env.HOME }}/.bash_it"
+
+# Theme to activate
+bash_it_theme: "bobby"
+
+# List of completions to enable
+bash_it_completions:
+  - ssh
