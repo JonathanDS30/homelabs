@@ -1,0 +1,83 @@
+---
+# Tasks to install Packer
+
+- name: Install required dependencies
+  ansible.builtin.apt:
+    name:
+      - unzip
+      - curl
+      - gpg
+    state: present
+    update_cache: true
+  become: true
+
+- name: Check if Packer is already installed
+  ansible.builtin.command: packer version
+  register: packer_installed_check
+  changed_when: false
+  failed_when: false
+
+- name: Extract current Packer version
+  ansible.builtin.set_fact:
+    packer_current_version: "{{ packer_installed_check.stdout | regex_search('Packer v([0-9.]+)', '\\1') | first if packer_installed_check.rc == 0 else 'none' }}"
+  when: packer_installed_check.rc == 0 or packer_installed_check.rc != 0
+
+- name: Set current version to none if not installed
+  ansible.builtin.set_fact:
+    packer_current_version: "none"
+  when: packer_installed_check.rc != 0
+
+- name: Fetch information about the latest Packer version
+  ansible.builtin.uri:
+    url: "{{ packer_api_url }}"
+    return_content: yes
+  register: packer_latest_release
+
+- name: Set version and download URL
+  ansible.builtin.set_fact:
+    packer_version: "{{ packer_latest_release.json.version }}"
+    packer_download_url: "{{ packer_latest_release.json.builds | selectattr('os', 'equalto', packer_os) | selectattr('arch', 'equalto', packer_arch) | map(attribute='url') | first }}"
+
+- name: Display version information
+  ansible.builtin.debug:
+    msg: "Current version: {{ packer_current_version }} | Latest version: {{ packer_version }}"
+
+- name: Packer is already up to date
+  ansible.builtin.debug:
+    msg: "Packer {{ packer_version }} is already installed"
+  when: packer_current_version == packer_version
+
+- name: Download and install Packer
+  when: packer_current_version != packer_version
+  block:
+    - name: Create temporary directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: packer
+      register: packer_temp_dir
+
+    - name: Download Packer
+      ansible.builtin.get_url:
+        url: "{{ packer_download_url }}"
+        dest: "{{ packer_temp_dir.path }}/packer.zip"
+        mode: '0644'
+
+    - name: Extract Packer
+      ansible.builtin.unarchive:
+        src: "{{ packer_temp_dir.path }}/packer.zip"
+        dest: "{{ packer_temp_dir.path }}"
+        remote_src: yes
+
+    - name: Install Packer to {{ packer_install_dir }}
+      ansible.builtin.copy:
+        src: "{{ packer_temp_dir.path }}/packer"
+        dest: "{{ packer_install_dir }}/packer"
+        mode: '0755'
+        remote_src: true
+      become: true
+      notify: Verify Packer installation
+
+    - name: Clean up temporary files
+      ansible.builtin.file:
+        path: "{{ packer_temp_dir.path }}"
+        state: absent

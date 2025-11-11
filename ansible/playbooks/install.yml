@@ -22,4 +22,11 @@
   gather_facts: true
   roles:
     - role: ../roles/disable-ipv6
+
+- name: Install Packer
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  roles:
+    - role: ../roles/install-packer
 ...

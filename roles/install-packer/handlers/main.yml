@@ -1,0 +1,13 @@
+---
+# Handlers for the install-packer role
+
+- name: Verify Packer installation
+  ansible.builtin.command: packer version
+  register: packer_version_output
+  changed_when: false
+  listen: "Verify Packer installation"
+
+- name: Display installed Packer version
+  ansible.builtin.debug:
+    msg: "{{ packer_version_output.stdout }}"
+  listen: "Verify Packer installation"

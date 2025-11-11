@@ -1,0 +1,14 @@
+---
+# Default variables for the install-packer role
+
+# HashiCorp API URL to fetch the latest version
+packer_api_url: "https://api.releases.hashicorp.com/v1/releases/packer/latest"
+
+# Installation directory
+packer_install_dir: "/usr/local/bin"
+
+# System architecture (auto-detected)
+packer_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+
+# Operating system
+packer_os: "linux"
