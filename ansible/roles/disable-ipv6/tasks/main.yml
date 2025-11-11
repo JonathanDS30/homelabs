@@ -1,0 +1,83 @@
+---
+# Tasks to disable IPv6
+
+- name: Check current IPv6 status
+  ansible.builtin.command: cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+  register: ipv6_current_status
+  changed_when: false
+  failed_when: false
+
+- name: Display current IPv6 status
+  ansible.builtin.debug:
+    msg: "IPv6 is currently {{ 'disabled' if ipv6_current_status.stdout == '1' else 'enabled' }}"
+  when: ipv6_current_status.rc == 0
+
+- name: IPv6 is already disabled
+  ansible.builtin.debug:
+    msg: "IPv6 is already disabled. Skipping configuration."
+  when: ipv6_current_status.stdout == "1"
+
+- name: Disable IPv6 via sysctl
+  when: 
+    - ipv6_disable_method == "sysctl"
+    - ipv6_current_status.stdout != "1"
+  block:
+    - name: Create sysctl configuration to disable IPv6
+      ansible.builtin.copy:
+        dest: "{{ ipv6_sysctl_file }}"
+        content: |
+          # Disable IPv6 on all interfaces
+          net.ipv6.conf.all.disable_ipv6 = 1
+          net.ipv6.conf.default.disable_ipv6 = 1
+          net.ipv6.conf.lo.disable_ipv6 = 1
+        mode: '0644'
+        owner: root
+        group: root
+      become: true
+      notify: Apply sysctl settings
+
+    - name: Apply sysctl settings immediately
+      ansible.builtin.command: sysctl -p {{ ipv6_sysctl_file }}
+      become: true
+      when: ipv6_apply_immediately
+      changed_when: false
+      register: sysctl_apply_result
+
+- name: Disable IPv6 via GRUB
+  when: 
+    - ipv6_disable_method == "grub"
+    - ipv6_current_status.stdout != "1"
+  block:
+    - name: Check if GRUB configuration exists
+      ansible.builtin.stat:
+        path: "{{ ipv6_grub_file }}"
+      register: grub_config
+
+    - name: Add IPv6 disable parameter to GRUB
+      ansible.builtin.lineinfile:
+        path: "{{ ipv6_grub_file }}"
+        regexp: '^GRUB_CMDLINE_LINUX='
+        line: 'GRUB_CMDLINE_LINUX="ipv6.disable=1"'
+        backup: true
+      become: true
+      when: grub_config.stat.exists
+      notify: Update GRUB
+
+    - name: Warning message for GRUB method
+      ansible.builtin.debug:
+        msg: "GRUB configuration updated. A reboot is required to apply changes."
+      when: grub_config.stat.exists
+
+- name: Verify final IPv6 status
+  ansible.builtin.command: cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+  register: ipv6_final_status
+  changed_when: false
+  failed_when: false
+  when: ipv6_current_status.stdout != "1"
+
+- name: Display final IPv6 status
+  ansible.builtin.debug:
+    msg: "IPv6 is now {{ 'disabled' if ipv6_final_status.stdout == '1' else 'enabled' }} (value: {{ ipv6_final_status.stdout }})"
+  when: 
+    - ipv6_current_status.stdout != "1"
+    - ipv6_final_status.rc == 0

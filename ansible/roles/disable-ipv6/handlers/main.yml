@@ -1,0 +1,19 @@
+---
+# Handlers for the disable-ipv6 role
+
+- name: Apply sysctl settings
+  ansible.builtin.command: sysctl -p {{ ipv6_sysctl_file }}
+  become: true
+  listen: "Apply sysctl settings"
+
+- name: Update GRUB
+  ansible.builtin.command: update-grub
+  become: true
+  listen: "Update GRUB"
+  when: ansible_os_family == "Debian"
+
+- name: Update GRUB on RedHat
+  ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  become: true
+  listen: "Update GRUB"
+  when: ansible_os_family == "RedHat"

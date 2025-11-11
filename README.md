@@ -114,7 +114,7 @@ The MINISFORUM NAB9 provides a powerful and energy-efficient platform for runnin
 
 2. **Run Ansible playbooks**
    ```bash
-   cd playbooks
+   cd ansible/playbooks
    ansible-playbook install.yml
    ```
 

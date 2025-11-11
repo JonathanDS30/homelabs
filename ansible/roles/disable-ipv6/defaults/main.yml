@@ -1,0 +1,16 @@
+---
+# Default variables for the disable-ipv6 role
+
+# Method to disable IPv6: 'sysctl' or 'grub'
+# - sysctl: Disable at runtime (requires reboot or sysctl reload)
+# - grub: Disable at boot time via kernel parameters (requires reboot)
+ipv6_disable_method: "sysctl"
+
+# Sysctl configuration file path
+ipv6_sysctl_file: "/etc/sysctl.d/99-disable-ipv6.conf"
+
+# GRUB configuration file path
+ipv6_grub_file: "/etc/default/grub"
+
+# Apply changes immediately (requires sysctl reload)
+ipv6_apply_immediately: true
